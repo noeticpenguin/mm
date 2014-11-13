@@ -380,13 +380,15 @@ class MavensMateClient(object):
             self.__exception_handler(r)
         response = util.parse_rest_response(r.text)
 
+        if int(float(util.SFDC_API_VERSION)) >= 31:
+            query_string = "Select Id, MetadataContainerId, MetadataContainerMemberId, State, IsCheckOnly, DeployDetails, ErrorMsg FROM ContainerAsyncRequest WHERE Id='"+response["id"]+"'"
+        else:
+            query_string = "Select Id, MetadataContainerId, MetadataContainerMemberId, State, IsCheckOnly, CompilerErrors, ErrorMsg FROM ContainerAsyncRequest WHERE Id='"+response["id"]+"'"
+
         finished = False
-        while finished == False:
-            time.sleep(1)
-            if int(float(util.SFDC_API_VERSION)) >= 31:
-                query_string = "Select Id, MetadataContainerId, MetadataContainerMemberId, State, IsCheckOnly, DeployDetails, ErrorMsg FROM ContainerAsyncRequest WHERE Id='"+response["id"]+"'"
-            else:
-                query_string = "Select Id, MetadataContainerId, MetadataContainerMemberId, State, IsCheckOnly, CompilerErrors, ErrorMsg FROM ContainerAsyncRequest WHERE Id='"+response["id"]+"'"
+        while not finished:
+            time.sleep(.25)
+            
             r = requests.get(self.get_tooling_url()+"/query/", params={'q':query_string}, headers=self.get_rest_headers(), proxies=self.__get_proxies(), verify=False)
             if self.__is_failed_request(r):
                 self.__exception_handler(r)
